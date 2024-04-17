@@ -33,18 +33,16 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_ACCESS_SECRET_KEY }}
           aws-region: ap-south-1a
 
-    - name: Deploy Node.js code
-      env:
+      - name: Deploy Node.js code
+        env:
           PRIVATE_KEY: ${{ secrets.AWS_PEM_KEY  }}
-          HOSTNAME : ${{ secrets.HOSTNAME  }}
-          USER_NAME : ${{ secrets.USER_NAME  }}
-          ENV : ${{ secrets.ENV  }}
-      run: |
-        echo "$ENV" > .env
-        echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
-        rsync -r --exclude 'node_modules' --exclude '.git/' --delete-after -e "ssh -o StrictHostKeyChecking=no -i private_key" . ${USER_NAME}@${HOSTNAME}:/var/www/nxgeninventors.com/quiz/
+          HOSTNAME: ${{ secrets.HOSTNAME  }}
+          USER_NAME: ${{ secrets.USER_NAME  }}
+        run: |
+          echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+          rsync -r --exclude 'node_modules' --exclude '.git/' --delete-after -e "ssh -o StrictHostKeyChecking=no -i private_key" . ${USER_NAME}@${HOSTNAME}:/var/www/nxgeninventors.com/quiz/
 
-        ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOSTNAME} '
-            # Custom deployment steps for Node.js project
-            # e.g., restart Node.js server, install production dependencies, etc.
-        '
+          ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOSTNAME} '
+              # Custom deployment steps for Node.js project
+              # e.g., restart Node.js server, install production dependencies, etc.
+          '

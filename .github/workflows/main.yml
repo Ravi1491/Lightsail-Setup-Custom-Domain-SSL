@@ -22,7 +22,7 @@ jobs:
 
       - name: Install rsync
         run: |
-          sudo apt-get install -y rsync
+          choco install rsync
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v1

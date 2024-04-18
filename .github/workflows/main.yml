@@ -40,10 +40,11 @@ jobs:
           HOSTNAME: ${{ secrets.HOSTNAME }}
           USER_NAME: ${{ secrets.USER_NAME }}
         run: |
-          echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
-          /usr/bin/rsync -r --exclude 'node_modules' --exclude '.git/' --delete-after -e "ssh -o StrictHostKeyChecking=no -i private_key" . ${USER_NAME}@${HOSTNAME}:/var/www/nxgeninventors.com/quiz/
+          echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
+          rsync -r --exclude 'node_modules' --exclude '.git/' --delete-after -e "ssh -o StrictHostKeyChecking=no -i private_key.pem" . ${USER_NAME}@${HOSTNAME}:/htdocs/Lightsail-Setup-Custom-Domain-SSL
 
-          ssh -o StrictHostKeyChecking=no -i private_key ${USER_NAME}@${HOSTNAME} '
-              # Custom deployment steps for Node.js project
-              # e.g., restart Node.js server, install production dependencies, etc.
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} '
+              cd ./htdocs/Lightsail-Setup-Custom-Domain-SSL
+              npm install
+              # Additional steps to start/restart your Node.js application, e.g., pm2 restart
           '

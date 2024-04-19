@@ -1,50 +1,58 @@
-name: Deploy Node.js to AWS Lightsail
+name: Deploy to Lightsail
+
+env:
+  DEPLOY_PACKAGE_NAME_FILE: "${{ github.sha }}.zip"
+  DEPLOY_PACKAGE_NAME: "${{ github.sha }}"
 
 on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Git clone https://github.com/Ravi1491/Lightsail-Setup-Custom-Domain-SSL.git
         uses: actions/checkout@v2
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: "18.12.0"
-
-      - name: Install rsync
-        run: |
-          choco install rsync
-
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.AWS_ACCESS_SECRET_KEY }}
-          aws-region: ap-south-1
-
-      - name: Install dependencies
+      - name: Install Our App
         run: npm install
 
-      - name: Deploy Node.js code
-        env:
-          PRIVATE_KEY: ${{ secrets.AWS_PEM_KEY }}
-          HOSTNAME: ${{ secrets.HOSTNAME }}
-          USER_NAME: ${{ secrets.USER_NAME }}
+      - name: This create an env file incase we need one.
         run: |
-          echo "$PRIVATE_KEY" > private_key.pem && chmod 600 private_key.pem
-          rsync -r --exclude 'node_modules' --exclude '.git/' --delete-after -e "ssh -o StrictHostKeyChecking=no -i private_key.pem" . ${USER_NAME}@${HOSTNAME}:/htdocs/Lightsail-Setup-Custom-Domain-SSL
+          touch .env
+          echo PORT=${{ secrets.PORT }} >> .env
 
-          ssh -o StrictHostKeyChecking=no -i private_key.pem ${USER_NAME}@${HOSTNAME} '
-              cd ./htdocs/Lightsail-Setup-Custom-Domain-SSL
-              npm install
-              # Additional steps to start/restart your Node.js application, e.g., pm2 restart
-          '
+      - name: Create zip deployment package
+        run: zip -r ${{ env.DEPLOY_PACKAGE_NAME_FILE }} ./dist/ -x *.git*
+
+      - name: copy file via ssh password
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.LIGTHSAIL_IP }}
+          username: ${{ secrets.LIGTHSAIL_USERNAME }}
+          key: ${{ secrets.LIGTHSAIL_KEY }}
+          password: ""
+          passphrase: ""
+          port: 22
+          source: ${{ env.DEPLOY_PACKAGE_NAME_FILE }}
+          target: "/home/${{ secrets.LIGTHSAIL_USERNAME }}"
+
+      - name: Connect to AWS Lightsail, extract file and delete the file
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.LIGTHSAIL_IP }}
+          username: ${{ secrets.LIGTHSAIL_USERNAME }}
+          key: ${{ secrets.LIGTHSAIL_KEY }}
+          password: ""
+          passphrase: ""
+          port: 22
+          script: |
+            sudo apt-get install zip unzip
+            unzip -q -o /home/${{ secrets.LIGTHSAIL_USERNAME }}/${{ env.DEPLOY_PACKAGE_NAME_FILE }} -d /home/${{ secrets.LIGTHSAIL_USERNAME }}/${{ secrets.LIGTHSAIL_ROOT_DIR }}
+            rm /home/${{ secrets.LIGTHSAIL_USERNAME }}/${{ env.DEPLOY_PACKAGE_NAME_FILE }}
+            sudo systemctl restart nginx
+      - name: Deployment completed Successfully
+        run: echo "Deployment completed successfuly"

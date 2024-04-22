@@ -25,7 +25,6 @@ jobs:
       - name: Install dependencies and build
         run: |
           npm install
-          npm run build
 
       - name: Create zip deployment package
         run: zip -r ${{ env.DEPLOY_PACKAGE_NAME_FILE }} ./dist/ -x *.git*
